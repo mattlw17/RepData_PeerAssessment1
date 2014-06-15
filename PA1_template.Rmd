@@ -35,30 +35,115 @@ The data now appears ready for analysis.
 str(data)
 head(data)
 ```
-k
+
 ## What is mean total number of steps taken per day?
 Steps are aggregated by day into a new data frame.  A plot of steps per day is generated, and the mean and median of steps per day is calculated.
-```{r}
+```{r fig.width=7, fig.height=6}
+## Prep Data frame
 stepsPerDay <- aggregate(steps ~ date,data=data,sum)
+
+## Examine Data
 head(stepsPerDay)
 str(stepsPerDay)
-qplot(date,steps,data=stepsPerDay,sum)
+
+## Plot Historgram
+qplot(date,steps,data=stepsPerDay)
+
+## Calculate Mean
 mean(stepsPerDay$steps)
+
+## Calculate Median
 median(stepsPerDay$steps)
 ```
 
 ## What is the average daily activity pattern?
+Steps are averaged across 5 minute intervals into a new data frame.  A plot is generated of average steps by interval, and the maximum steps per interval is calculated.
+```{r fig.width=7, fig.height=6}
+## Prep Data Frame
+avgStepsInt <- aggregate(steps ~ interval,data=data,mean)
 
+## Examine Data
+head(avgStepsInt)
+str(avgStepsInt)
 
+## Generate Plot
+qplot(interval,steps,data=avgStepsInt,geom=c("smooth","point"))
+
+## Pull maximum average steps and interval for maximum steps
+max(avgStepsInt$steps)
+avgStepsInt[avgStepsInt$steps==max(avgStepsInt$steps),"interval"]
+```
 
 ## Imputing missing values
+As noted above, there appears tobe missing data in the dataset.
+```{r}
+## Calculates # of missing observations
+sum(is.na(data$steps))
+```
 
+To impute missing values, we will use the mean value for that interval from the rest of the data set.
+```{r}
+## Create new data frame with imputed data set
+library(plyr)
+names(avgStepsInt)=c("interval","avgSteps")
+aggregateData <- join(data,avgStepsInt,by="interval")
+for (i in 1:nrow(aggregateData)) {
+  if (is.na(aggregateData[i,"steps"])==TRUE){
+    aggregateData[i,"steps"] <- aggregateData[i,"avgSteps"]
+  }
+}
+newData <- aggregateData[,c("steps","interval","date")]
 
+# Examine new data
+str(newData)
+head(newData)
+```
+
+The analysis from the second part is recreated on the new data set.
+```{r fig.width=7, fig.height=6}
+## Prep Data frame
+stepsPerDay <- aggregate(steps ~ date,data=newData,sum)
+
+## Examine Data
+head(stepsPerDay)
+str(stepsPerDay)
+
+## Plot Historgram
+qplot(date,steps,data=stepsPerDay)
+
+## Calculate Mean
+mean(stepsPerDay$steps)
+
+## Calculate Median
+median(stepsPerDay$steps)
+```
+The imputatation did not appear to have a meaningful impact the mean and median of the data set.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+We first create a new factor variable identifying a day as a weekday or weekend.
+```{r}
+for (i in 1:nrow(newData)) {
+  if (weekdays(newData[i,"date"])=="Saturday" | weekdays(newData[i,"date"])=="Saturday"){
+    newData[i,"dayOrEnd"] <- "Weekend"
+  }
+  else {
+    newData[i,"dayOrEnd"] <- "Weekday"
+  }
+}
+newData$dayOrEnd <- as.factor(newData$dayOrEnd)
 
-You can also embed plots, for example:
-
-```{r fig.width=7, fig.height=6}
-plot(cars)
+## Examine data frame
+summary(newData)
 ```
+
+We now calculate the average steps per interval again, this time separating by weekday or weekend.  The results are examined and plotted.
+```{r fig.width=7, fig.height=6}
+## Prep Data Frame
+avgStepsInt <- aggregate(steps ~ interval + dayOrEnd,data=newData,mean)
+
+## Examine Data
+head(avgStepsInt)
+str(avgStepsInt)
+
+## Generate Plot
+qplot(interval,steps,data=avgStepsInt,geom="line",facets=.~dayOrEnd)
