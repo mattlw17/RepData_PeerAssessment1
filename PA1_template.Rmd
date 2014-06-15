@@ -35,7 +35,7 @@ The data now appears ready for analysis.
 str(data)
 head(data)
 ```
-
+k
 ## What is mean total number of steps taken per day?
 Steps are aggregated by day into a new data frame.  A plot of steps per day is generated, and the mean and median of steps per day is calculated.
 ```{r}
